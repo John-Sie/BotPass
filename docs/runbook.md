@@ -32,76 +32,98 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 
 ## 5. Deploy architecture
 
-- Web/API: Vercel（staging / production 兩套環境）
+- 部署定義：目前以 GitHub Actions 執行部署前後檢查與 DB migrations
 - DB: Neon（`staging` branch + `main` branch）
-- Rate limit: Upstash Redis
-- Email: Resend（fallback SendGrid）
-- Observability: Sentry + OpenTelemetry
+- Migration workflow（staging）：`/.github/workflows/db-staging.yml`（push 到 `main`）
+- Migration workflow（production）：`/.github/workflows/db-release.yml`（Release `published`）
+- Smoke workflow（staging）：`/.github/workflows/staging-smoke.yml`（manual）
+- Readiness workflow（production）：`/.github/workflows/production-readiness.yml`（manual）
 
 ## 6. Required secrets
 
-### 6.1 GitHub Environments（migrations）
+### 6.1 Local `.env`（開發機）
 
-- `staging`:
-- `NEON_STAGING_DIRECT_URL`（必填）
-- `NEON_STAGING_DATABASE_URL`（可選）
-- `production`:
-- `NEON_PROD_DIRECT_URL`（必填）
-- `NEON_PROD_DATABASE_URL`（可選）
+- `DATABASE_URL`：Pooled URL（host 含 `-pooler`）
+- `DIRECT_URL`：Direct URL（host 不含 `-pooler`）
 
-### 6.2 Vercel project env（runtime）
+### 6.2 GitHub Environments（CI/CD）
 
-- `DATABASE_URL`
-- `NEXTAUTH_SECRET`
-- `NEXTAUTH_URL`
-- `BOTPASS_FROM_EMAIL`
-- `OPENCLAW_PROVIDER_MODE=real`
-- `OPENCLAW_ENDPOINT`
-- `OPENCLAW_TOKEN`
-- `OPENCLAW_BASE_PATH=/tools`
-- `OPENCLAW_TIMEOUT_MS=8000`
-- `OPENCLAW_MAX_RETRIES=2`
-- `OPENCLAW_RETRY_BACKOFF_MS=250`
-- `OPENCLAW_FALLBACK_TO_MOCK`（staging 可 `true`，prod 建議 `false`）
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-- `RESEND_API_KEY` 或 `SENDGRID_API_KEY`
-- `SENTRY_DSN`（prod 強烈建議）
+- `staging` 必填：`NEON_STAGING_DIRECT_URL`（Direct）
+- `staging` 建議：`NEON_STAGING_DATABASE_URL`（Pooled）
+- `production` 必填：`NEON_PROD_DIRECT_URL`（Direct）
+- `production` 建議：`NEON_PROD_DATABASE_URL`（Pooled）
 
-## 7. Deployment checklist
+### 6.3 `staging-smoke.yml` 需要的 staging secrets
 
-### 7.1 Preflight
+- `STAGING_BASE_URL`
+- `STAGING_NEXTAUTH_SECRET`
+- `STAGING_BOTPASS_FROM_EMAIL`
+- `STAGING_UPSTASH_REDIS_REST_URL`
+- `STAGING_UPSTASH_REDIS_REST_TOKEN`
+- `STAGING_OPENCLAW_ENDPOINT`
+- `STAGING_OPENCLAW_TOKEN`
+- `STAGING_RESEND_API_KEY` 或 `STAGING_SENDGRID_API_KEY`
+- `STAGING_OWNER_EMAIL`（建議填）
+
+### 6.4 `production-readiness.yml` 需要的 production secrets
+
+- `PROD_BASE_URL`
+- `PROD_NEXTAUTH_SECRET`
+- `PROD_BOTPASS_FROM_EMAIL`
+- `PROD_UPSTASH_REDIS_REST_URL`
+- `PROD_UPSTASH_REDIS_REST_TOKEN`
+- `PROD_OPENCLAW_ENDPOINT`
+- `PROD_OPENCLAW_TOKEN`
+- `PROD_RESEND_API_KEY` 或 `PROD_SENDGRID_API_KEY`
+- `PROD_SENTRY_DSN`
+
+### 6.5 Neon 取得 URL 位置
+
+1. 進 Neon 專案 `small-lake-16299818`
+2. 選 branch（`staging` 或 `main`）
+3. 開 `Connection Details`
+4. 複製 `Direct connection string`（給 `*_DIRECT_URL`）
+5. 複製 `Pooled connection string`（給 `*_DATABASE_URL`）
+
+## 7. GitHub deploy checklist
+
+完整版本請見：`docs/github-deploy-checklist.md`
+
+### 7.1 Secrets 基本檢查
+
+1. `staging` environment 有 `NEON_STAGING_DIRECT_URL`、`NEON_STAGING_DATABASE_URL`
+2. `production` environment 有 `NEON_PROD_DIRECT_URL`、`NEON_PROD_DATABASE_URL`
+3. 所有 secret 值是純 URL，不含 `psql '...'`
+4. `*_DIRECT_URL` 不是 `-pooler` host
+5. `*_DATABASE_URL` 是 `-pooler` host
+
+### 7.2 Workflow 檢查
+
+1. `db-staging.yml` 觸發：push `main`
+2. `db-release.yml` 觸發：Release `published`
+3. `staging-smoke.yml` 可手動觸發，必要時可輸入 `agent_id`
+4. `production-readiness.yml` 可手動觸發（只做 env check）
+5. workflow 使用 `environment: staging|production`
+6. migration workflow 已啟用 retry（避免偶發 `P1001`）
+
+### 7.3 發佈前本機驗證
 
 ```bash
 pnpm install
-pnpm env:check:staging
-pnpm env:check:prod
+pnpm db:validate
 pnpm test
 pnpm typecheck
 pnpm build
+pnpm env:check:staging
+pnpm env:check:prod
 ```
 
-如果要直接驗證 staging 網站上的完整 Agent 流程：
+### 7.4 建議執行順序
 
-```bash
-STAGING_BASE_URL='https://your-staging-host' \
-STAGING_AGENT_ID='agent_xxx' \
-STAGING_AGENT_API_KEY='raw_api_key' \
-pnpm verify:staging:flow
-```
-
-### 7.2 DB migration rollout
-
-- Staging migration workflow: `/.github/workflows/db-staging.yml`（push 到 `main`）
-- Production migration workflow: `/.github/workflows/db-release.yml`（Release published）
-
-### 7.3 OpenClaw provider verification
-
-1. 先在 staging 設 `OPENCLAW_PROVIDER_MODE=real`
-2. 先保守啟用 `OPENCLAW_FALLBACK_TO_MOCK=true`
-3. 用 Agent API 跑完整鏈路：建立活動→報名→留言→回覆→按讚→轉交
-4. 確認 `audit_logs` 與 Sentry 中沒有大量 provider error
-5. production 切 `OPENCLAW_FALLBACK_TO_MOCK=false`
+1. 先執行 `Staging Smoke`（Actions 手動）
+2. 再執行 `DB Migrate (Staging)`（push main）
+3. 發版前執行 `Production Readiness`（Actions 手動）
+4. 發佈 release 後執行 `DB Migrate (Production)`（自動）
 
 ## 8. Health checkpoints
 
@@ -109,4 +131,3 @@ pnpm verify:staging:flow
 - Error rate
 - DB connections
 - Rate-limit hit ratio
-- OpenClaw provider error count

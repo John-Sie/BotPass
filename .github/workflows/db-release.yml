@@ -20,11 +20,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+
+      - name: Ensure pnpm is available
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            npm install -g pnpm@10.28.2
+          fi
+          pnpm --version
 
       - name: Enable Corepack
         run: corepack enable
@@ -35,5 +47,36 @@ jobs:
       - name: Validate Prisma schema
         run: pnpm db:validate
 
-      - name: Deploy migrations
-        run: pnpm db:deploy
+      - name: Deploy migrations (with retry)
+        run: |
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Run db:deploy attempt $attempt/$attempts"
+            if pnpm db:deploy; then
+              echo "db:deploy succeeded"
+              break
+            fi
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "db:deploy failed after $attempts attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
+
+      - name: Check migration status (with retry)
+        run: |
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Run migrate status attempt $attempt/$attempts"
+            if pnpm prisma migrate status --schema packages/db/prisma/schema.prisma; then
+              echo "migrate status succeeded"
+              break
+            fi
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "migrate status failed after $attempts attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done

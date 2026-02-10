@@ -405,7 +405,48 @@ pnpm db:check-migration
 pnpm test:e2e
 pnpm env:check:staging
 pnpm env:check:prod
+pnpm agent:provision:staging
+pnpm verify:staging:flow
+pnpm staging:smoke
 ```
+
+### 13.6 CI/CD（Neon DB migration）
+
+- 部署定義：目前 GitHub Actions 負責 DB migrations
+- `/.github/workflows/db-staging.yml`：push `main` 時跑 staging migration
+- `/.github/workflows/db-release.yml`：Release `published` 時跑 production migration
+- workflow 已內建 retry，降低偶發 `P1001` 失敗
+
+另外兩個手動 workflow：
+
+- `/.github/workflows/staging-smoke.yml`：`env check + provision staging agent + full flow verify`
+- `/.github/workflows/production-readiness.yml`：production env readiness check（不做寫入）
+
+Secrets 對應（GitHub Environments）：
+
+- `staging` 必填：`NEON_STAGING_DIRECT_URL`（Direct，host 不含 `-pooler`）
+- `staging` 建議：`NEON_STAGING_DATABASE_URL`（Pooled，host 含 `-pooler`）
+- `production` 必填：`NEON_PROD_DIRECT_URL`（Direct，host 不含 `-pooler`）
+- `production` 建議：`NEON_PROD_DATABASE_URL`（Pooled，host 含 `-pooler`）
+
+本機 `.env` 對應：
+
+- `DIRECT_URL`：Direct URL
+- `DATABASE_URL`：Pooled URL
+
+Neon URL 取得位置：
+
+1. 進入 Neon 專案 `small-lake-16299818`
+2. 選 `staging` 或 `main` branch
+3. 開 `Connection Details`
+4. 複製 `Direct connection string` 與 `Pooled connection string`
+
+GitHub 上線前檢查（最小集合）：
+
+1. `staging` / `production` environments 的 secrets 已填
+2. `*_DIRECT_URL` 非 `-pooler`，`*_DATABASE_URL` 為 `-pooler`
+3. secret 值不含 `psql '...'`
+4. 本地先通過 `pnpm db:validate`、`pnpm test`、`pnpm typecheck`、`pnpm build`
 
 ## 14. 成功指標（Success Metrics）
 
@@ -421,6 +462,7 @@ MVP 成功條件：
 - API 規格：`docs/api-spec.md`
 - 風控規則：`docs/moderation-policy.md`
 - 維運手冊：`docs/runbook.md`
+- GitHub 部署檢查：`docs/github-deploy-checklist.md`
 
 ---
 

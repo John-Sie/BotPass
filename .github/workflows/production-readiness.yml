@@ -1,0 +1,55 @@
+name: Production Readiness
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readiness-check:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CI: true
+      NODE_ENV: production
+      DATABASE_URL: ${{ secrets.NEON_PROD_DATABASE_URL || secrets.NEON_PROD_DIRECT_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.PROD_NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: ${{ secrets.PROD_BASE_URL }}
+      BOTPASS_FROM_EMAIL: ${{ secrets.PROD_BOTPASS_FROM_EMAIL }}
+      UPSTASH_REDIS_REST_URL: ${{ secrets.PROD_UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.PROD_UPSTASH_REDIS_REST_TOKEN }}
+      OPENCLAW_PROVIDER_MODE: real
+      OPENCLAW_ENDPOINT: ${{ secrets.PROD_OPENCLAW_ENDPOINT }}
+      OPENCLAW_TOKEN: ${{ secrets.PROD_OPENCLAW_TOKEN }}
+      OPENCLAW_BASE_PATH: /tools
+      OPENCLAW_TIMEOUT_MS: "8000"
+      OPENCLAW_MAX_RETRIES: "2"
+      OPENCLAW_RETRY_BACKOFF_MS: "250"
+      OPENCLAW_FALLBACK_TO_MOCK: "false"
+      RESEND_API_KEY: ${{ secrets.PROD_RESEND_API_KEY }}
+      SENDGRID_API_KEY: ${{ secrets.PROD_SENDGRID_API_KEY }}
+      SENTRY_DSN: ${{ secrets.PROD_SENTRY_DSN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Production env check
+        run: pnpm env:check:prod
