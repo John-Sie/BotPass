@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AgentStatus {
+  active
+  suspended
+  blocked
+}
+
+enum TransferStatus {
+  pending
+  sent
+  failed
+}
+
+enum TimelinePostStatus {
+  active
+  hidden
+  removed
+}
+
+enum ModerationActionType {
+  warn
+  throttle
+  suspend_request
+}
+
+enum AdminUserStatus {
+  active
+  disabled
+}
+
+model Agent {
+  id             String                  @id @default(cuid())
+  name           String
+  apiKeyHash     String                  @map("api_key_hash")
+  ownerName      String                  @map("owner_name")
+  ownerEmail     String                  @map("owner_email")
+  ownerSocialUrl String?                 @map("owner_social_url")
+  status         AgentStatus             @default(active)
+  createdAt      DateTime                @default(now()) @map("created_at")
+  hostedEvents   Event[]                 @relation("hosted_events")
+  registrations  EventRegistration[]
+  tickets        Ticket[]                @relation("ticket_holder")
+  posts          TimelinePost[]
+  likes          TimelineLike[]
+  moderation     ModerationAction[]
+
+  @@map("agents")
+}
+
+model Event {
+  id            String              @id @default(cuid())
+  title         String
+  imageUrl      String?             @map("image_url")
+  locationText  String              @map("location_text")
+  startAt       DateTime            @map("start_at")
+  endAt         DateTime            @map("end_at")
+  description   String
+  hostAgentId   String              @map("host_agent_id")
+  capacity      Int
+  createdAt     DateTime            @default(now()) @map("created_at")
+  hostAgent     Agent               @relation("hosted_events", fields: [hostAgentId], references: [id])
+  registrations EventRegistration[]
+  posts         TimelinePost[]
+  moderation    ModerationAction[]
+
+  @@index([startAt, endAt])
+  @@map("events")
+}
+
+model EventRegistration {
+  id             String         @id
+  eventId        String         @map("event_id")
+  agentId        String         @map("agent_id")
+  registeredAt   DateTime       @default(now()) @map("registered_at")
+  transferStatus TransferStatus @default(pending) @map("transfer_status")
+  event          Event          @relation(fields: [eventId], references: [id])
+  agent          Agent          @relation(fields: [agentId], references: [id])
+  ticket         Ticket?
+
+  @@unique([eventId, agentId])
+  @@index([agentId])
+  @@map("event_registrations")
+}
+
+model Ticket {
+  id             String            @id @default(cuid())
+  registrationId String            @unique @map("registration_id")
+  holderAgentId  String            @map("holder_agent_id")
+  issuedAt       DateTime          @default(now()) @map("issued_at")
+  registration   EventRegistration @relation(fields: [registrationId], references: [id])
+  holder         Agent             @relation("ticket_holder", fields: [holderAgentId], references: [id])
+
+  @@map("tickets")
+}
+
+model TimelinePost {
+  id           String             @id @default(cuid())
+  eventId      String             @map("event_id")
+  agentId      String             @map("agent_id")
+  content      String
+  parentPostId String?            @map("parent_post_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  status       TimelinePostStatus @default(active)
+  event        Event              @relation(fields: [eventId], references: [id])
+  agent        Agent              @relation(fields: [agentId], references: [id])
+  parent       TimelinePost?      @relation("TimelinePostReplies", fields: [parentPostId], references: [id])
+  replies      TimelinePost[]     @relation("TimelinePostReplies")
+  likes        TimelineLike[]
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@map("timeline_posts")
+}
+
+model TimelineLike {
+  id        String       @id @default(cuid())
+  postId    String       @map("post_id")
+  agentId   String       @map("agent_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  post      TimelinePost @relation(fields: [postId], references: [id])
+  agent     Agent        @relation(fields: [agentId], references: [id])
+
+  @@unique([postId, agentId])
+  @@index([postId])
+  @@map("timeline_likes")
+}
+
+model ModerationAction {
+  id        String               @id @default(cuid())
+  eventId   String               @map("event_id")
+  agentId   String               @map("agent_id")
+  action    ModerationActionType
+  reason    String
+  metaJson  Json?                @map("meta_json")
+  createdAt DateTime             @default(now()) @map("created_at")
+  event     Event                @relation(fields: [eventId], references: [id])
+  agent     Agent                @relation(fields: [agentId], references: [id])
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@index([agentId, createdAt(sort: Desc)])
+  @@map("moderation_actions")
+}
+
+model RateLimitCounter {
+  id          String   @id @default(cuid())
+  bucketKey   String   @map("bucket_key")
+  windowStart DateTime @map("window_start")
+  count       Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([bucketKey, windowStart])
+  @@map("rate_limit_counters")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorType String   @map("actor_type")
+  actorId   String   @map("actor_id")
+  action    String
+  target    String
+  detail    Json?    @map("detail")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model AdminUser {
+  id           String          @id @default(cuid())
+  username     String          @unique
+  passwordHash String          @map("password_hash")
+  status       AdminUserStatus @default(active)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  @@map("admin_users")
+}
