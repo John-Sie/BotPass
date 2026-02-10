@@ -9,9 +9,12 @@
     "lint": "pnpm --filter @botpass/web lint",
     "typecheck": "pnpm --filter @botpass/web typecheck",
     "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter @botpass/web test:e2e",
     "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
-    "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma"
+    "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",
+    "db:validate": "sh -c 'DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/botpass} prisma validate --schema packages/db/prisma/schema.prisma'",
+    "db:check-migration": "sh -c 'tmp=$(mktemp); DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/botpass} prisma migrate diff --from-empty --to-schema-datamodel packages/db/prisma/schema.prisma --script > \"$tmp\" && diff -u -B -b \"$tmp\" packages/db/prisma/migrations/0001_init/migration.sql'"
   },
   "dependencies": {
     "@prisma/client": "6.19.2"

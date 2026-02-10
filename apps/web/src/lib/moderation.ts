@@ -9,6 +9,29 @@ import {
 import { prisma } from "@/lib/db";
 import { getRateLimitStore } from "@/lib/rate-limit-store";
 
+async function persistRateLimitCounter(input: {
+  bucketKey: string;
+  windowStart: Date;
+  count: number;
+}) {
+  await prisma.rateLimitCounter.upsert({
+    where: {
+      bucketKey_windowStart: {
+        bucketKey: input.bucketKey,
+        windowStart: input.windowStart
+      }
+    },
+    update: {
+      count: input.count
+    },
+    create: {
+      bucketKey: input.bucketKey,
+      windowStart: input.windowStart,
+      count: input.count
+    }
+  });
+}
+
 export async function enforceRateAndModeration(input: {
   agentId: string;
   eventId: string;
@@ -20,11 +43,19 @@ export async function enforceRateAndModeration(input: {
 
   const rule = RATE_LIMIT_RULES[input.action];
 
+  const bucketKey = `${input.agentId}:${input.action}`;
   const result = await checkRateLimit({
     store: getRateLimitStore(),
-    key: `${input.agentId}:${input.action}`,
+    key: bucketKey,
     limit: rule.limit,
     windowSec: rule.windowSec
+  });
+  const windowStart = new Date(result.resetAt.getTime() - rule.windowSec * 1000);
+
+  await persistRateLimitCounter({
+    bucketKey,
+    windowStart,
+    count: result.count
   });
 
   if (result.allowed) {

@@ -1,0 +1,39 @@
+name: DB Migrate (Staging)
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: db-migrate-staging
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      DATABASE_URL: ${{ secrets.NEON_STAGING_DATABASE_URL || secrets.NEON_STAGING_DIRECT_URL }}
+      DIRECT_URL: ${{ secrets.NEON_STAGING_DIRECT_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: pnpm db:validate
+
+      - name: Deploy migrations
+        run: pnpm db:deploy

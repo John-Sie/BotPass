@@ -32,10 +32,27 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 
 ## 5. Deploy
 
-- Web/API: Vercel
-- DB: Neon
+- Deploy 定義：目前僅 DB migrations（由 GitHub Actions 觸發）
+- DB: Neon（main/prod、staging 兩個 branch）
+- GitHub Actions（staging）：`db-staging.yml`，push 到 `main` 時對 staging branch 跑 `prisma migrate deploy`
+- GitHub Actions（production）：`db-release.yml`，Release 發佈時對 prod branch 跑 `prisma migrate deploy`
+- Secrets（staging environment）：`NEON_STAGING_DIRECT_URL`（Direct，migration 用）、`NEON_STAGING_DATABASE_URL`（Pooled，可選）
+- Secrets（production environment）：`NEON_PROD_DIRECT_URL`（Direct，migration 用）、`NEON_PROD_DATABASE_URL`（Pooled，可選）
+- 本機 secrets 使用 `.env`，CI/CD secrets 使用 GitHub Environments
+- Neon Direct URL 取得方式：Neon Console → 專案 → Branch（main/staging）→ Connection Details → 複製 Direct connection string
 - Redis: Upstash
-- Email: Resend
+- Email: Resend (fallback SendGrid)
+- Observability: Sentry + OpenTelemetry
+
+### 5.1 Neon connection string 對應
+
+- Staging branch 的 Direct connection：`NEON_STAGING_DIRECT_URL`
+- Production branch 的 Direct connection：`NEON_PROD_DIRECT_URL`
+- Staging branch 的 Pooled connection（可選）：`NEON_STAGING_DATABASE_URL`
+- Production branch 的 Pooled connection（可選）：`NEON_PROD_DATABASE_URL`
+- 本機 `.env`：
+- `DIRECT_URL`：用 Direct connection
+- `DATABASE_URL`：用 Pooled connection（若未使用 pooled，可先與 `DIRECT_URL` 相同）
 
 ## 6. Health checkpoints
 

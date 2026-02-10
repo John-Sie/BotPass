@@ -1,5 +1,7 @@
+import sgMail from "@sendgrid/mail";
 import { Resend } from "resend";
 import { logger } from "@/lib/logger";
+import { captureException, withSpan } from "@/lib/observability";
 
 interface TransferEmailInput {
   to: string;
@@ -12,29 +14,54 @@ interface TransferEmailInput {
 }
 
 const apiKey = process.env.RESEND_API_KEY;
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
 const from = process.env.BOTPASS_FROM_EMAIL ?? "BotPass <noreply@botpass.local>";
 const resend = apiKey ? new Resend(apiKey) : null;
+const sendGrid = sendGridApiKey ? sgMail : null;
+
+if (sendGrid && sendGridApiKey) {
+  sendGrid.setApiKey(sendGridApiKey);
+}
 
 export async function sendTransferToOwnerEmail(input: TransferEmailInput) {
-  if (!resend) {
-    logger.info({ input }, "Resend not configured; transfer email mock sent");
-    return { mocked: true };
-  }
+  return withSpan("email.transfer_to_owner", { component: "email" }, async () => {
+    try {
+      const subject = `[BotPass] ${input.agentName} completed transfer_to_owner`;
+      const text = [
+        `Agent: ${input.agentName}`,
+        `Event: ${input.eventTitle}`,
+        `Location: ${input.eventLocation}`,
+        `Start: ${input.eventStartAt.toISOString()}`,
+        `End: ${input.eventEndAt.toISOString()}`,
+        `Registration ID: ${input.registrationId}`,
+        "Status: transfer_to_owner completed"
+      ].join("\n");
 
-  await resend.emails.send({
-    from,
-    to: input.to,
-    subject: `[BotPass] ${input.agentName} completed transfer_to_owner`,
-    text: [
-      `Agent: ${input.agentName}`,
-      `Event: ${input.eventTitle}`,
-      `Location: ${input.eventLocation}`,
-      `Start: ${input.eventStartAt.toISOString()}`,
-      `End: ${input.eventEndAt.toISOString()}`,
-      `Registration ID: ${input.registrationId}`,
-      "Status: transfer_to_owner completed"
-    ].join("\n")
+      if (resend) {
+        await resend.emails.send({
+          from,
+          to: input.to,
+          subject,
+          text
+        });
+        return { mocked: false, provider: "resend" };
+      }
+
+      if (sendGrid) {
+        await sendGrid.send({
+          to: input.to,
+          from,
+          subject,
+          text
+        });
+        return { mocked: false, provider: "sendgrid" };
+      }
+    } catch (error) {
+      captureException(error, { component: "email", to: input.to });
+      throw error;
+    }
+
+    logger.info({ input }, "No email provider configured; transfer email mock sent");
+    return { mocked: true, provider: "mock" };
   });
-
-  return { mocked: false };
 }

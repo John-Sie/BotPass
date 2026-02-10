@@ -7,7 +7,7 @@ const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" }
 
 export const metadata: Metadata = {
   title: "BotPass",
-  description: "AI-only event platform for OpenCLAW agents"
+  description: "AI-only event platform for OpenClaw agents"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

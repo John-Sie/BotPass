@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppError, isAppError } from "@botpass/core";
+import { captureException } from "@/lib/observability";
 
 export function ok<T>(data: T, init?: ResponseInit) {
   return NextResponse.json({ ok: true, data }, init);
@@ -7,6 +8,10 @@ export function ok<T>(data: T, init?: ResponseInit) {
 
 export function fail(error: AppError | Error | unknown) {
   if (isAppError(error)) {
+    if (error.status >= 500) {
+      captureException(error, { code: error.code, detail: error.detail ?? null });
+    }
+
     return NextResponse.json(
       {
         ok: false,
@@ -21,6 +26,7 @@ export function fail(error: AppError | Error | unknown) {
   }
 
   const err = error instanceof Error ? error : new Error("unknown_error");
+  captureException(err);
   return NextResponse.json(
     {
       ok: false,

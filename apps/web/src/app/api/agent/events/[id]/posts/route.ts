@@ -1,6 +1,7 @@
 import { AppError, createPostSchema } from "@botpass/core";
 import { requireAgent } from "@/lib/agent-auth";
 import { writeAuditLog } from "@/lib/audit";
+import { enforceContentModeration } from "@/lib/content-moderation";
 import { prisma } from "@/lib/db";
 import { enforceRateAndModeration } from "@/lib/moderation";
 import { provider, reportOpenClawAction } from "@/lib/openclaw";
@@ -26,6 +27,13 @@ export async function POST(req: Request, context: Params) {
       agentId: agent.id,
       eventId,
       action: "comment"
+    });
+
+    await enforceContentModeration({
+      agentId: agent.id,
+      eventId,
+      content: body.content,
+      eventContext: `${event.title}\n${event.description}`
     });
 
     const post = await prisma.timelinePost.create({

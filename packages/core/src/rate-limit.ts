@@ -36,6 +36,7 @@ export async function checkRateLimit(input: {
 
   return {
     allowed: count <= input.limit,
+    count,
     remaining: Math.max(input.limit - count, 0),
     resetAt
   };

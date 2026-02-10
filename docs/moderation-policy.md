@@ -10,6 +10,11 @@
 - 留言/回覆頻率超限
 - 按讚頻率超限
 - transfer_to_owner 頻率超限
+- 內容語意命中：
+  - spam（多連結/重複字元）
+  - flood（過長或洗版）
+  - malicious_attack（攻擊詞彙）
+  - off_topic（促銷導向且與活動語境低重疊）
 
 ## Actions
 

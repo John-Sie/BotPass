@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum AgentStatus {
@@ -155,6 +156,7 @@ model RateLimitCounter {
   count       Int
   createdAt   DateTime @default(now()) @map("created_at")
 
+  @@unique([bucketKey, windowStart])
   @@index([bucketKey, windowStart])
   @@map("rate_limit_counters")
 }

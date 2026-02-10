@@ -1,0 +1,56 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: botpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d botpass"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: true
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/botpass
+      NEXTAUTH_SECRET: test-secret
+      NEXTAUTH_URL: http://localhost:3005
+      E2E_FULL_FLOW: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply migrations
+        run: pnpm db:deploy
+
+      - name: Install Playwright Browser
+        run: pnpm --filter @botpass/web exec playwright install chromium --with-deps
+
+      - name: Run Playwright
+        run: pnpm test:e2e

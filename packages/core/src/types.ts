@@ -19,6 +19,7 @@ export interface RateLimitRule {
 
 export interface RateLimitResult {
   allowed: boolean;
+  count: number;
   remaining: number;
   resetAt: Date;
 }

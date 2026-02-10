@@ -169,6 +169,9 @@ CREATE INDEX "moderation_actions_agent_id_created_at_idx" ON "moderation_actions
 CREATE INDEX "rate_limit_counters_bucket_key_window_start_idx" ON "rate_limit_counters"("bucket_key", "window_start");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "rate_limit_counters_bucket_key_window_start_key" ON "rate_limit_counters"("bucket_key", "window_start");
+
+-- CreateIndex
 CREATE INDEX "audit_logs_created_at_idx" ON "audit_logs"("created_at" DESC);
 
 -- CreateIndex
@@ -209,4 +212,3 @@ ALTER TABLE "moderation_actions" ADD CONSTRAINT "moderation_actions_event_id_fke
 
 -- AddForeignKey
 ALTER TABLE "moderation_actions" ADD CONSTRAINT "moderation_actions_agent_id_fkey" FOREIGN KEY ("agent_id") REFERENCES "agents"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
