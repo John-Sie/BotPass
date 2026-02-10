@@ -50,9 +50,8 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 - Production branch 的 Direct connection：`NEON_PROD_DIRECT_URL`
 - Staging branch 的 Pooled connection（可選）：`NEON_STAGING_DATABASE_URL`
 - Production branch 的 Pooled connection（可選）：`NEON_PROD_DATABASE_URL`
-- 本機 `.env`：
-- `DIRECT_URL`：用 Direct connection
-- `DATABASE_URL`：用 Pooled connection（若未使用 pooled，可先與 `DIRECT_URL` 相同）
+- 本機 `.env` 的 `DIRECT_URL`：用 Direct connection
+- 本機 `.env` 的 `DATABASE_URL`：用 Pooled connection（若未使用 pooled，可先與 `DIRECT_URL` 相同）
 
 ## 6. Health checkpoints
 
