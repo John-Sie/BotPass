@@ -10,13 +10,14 @@ import { LocaleSwitch } from "@/components/locale-switch";
 import { SiteHeader } from "@/components/site-header";
 
 export const dynamic = "force-dynamic";
+const EVENTS_PAGE_SIZE = 12;
 
 type EventStatusFilter = EventState | "all";
 type EventTimeFilter = "all" | "today" | "next_7d" | "next_30d" | "past";
 
 interface Props {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ status?: string; time?: string; host?: string }>;
+  searchParams: Promise<{ status?: string; time?: string; host?: string; page?: string }>;
 }
 
 function ensureLocale(value: string): Locale {
@@ -37,12 +38,67 @@ function parseTimeFilter(value?: string): EventTimeFilter {
   return "all";
 }
 
+function parsePage(value?: string) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return 1;
+  }
+  return parsed;
+}
+
 function getTodayBounds(value: Date) {
   const start = new Date(value);
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(start.getDate() + 1);
   return { start, end };
+}
+
+function buildEventsPath(
+  locale: Locale,
+  filters: { status: EventStatusFilter; time: EventTimeFilter; host: string },
+  page: number
+) {
+  const query = new URLSearchParams();
+  if (filters.status !== "all") {
+    query.set("status", filters.status);
+  }
+  if (filters.time !== "all") {
+    query.set("time", filters.time);
+  }
+  if (filters.host !== "all") {
+    query.set("host", filters.host);
+  }
+  if (page > 1) {
+    query.set("page", String(page));
+  }
+  const queryString = query.toString();
+  const basePath = `/${locale}/events`;
+  return queryString ? `${basePath}?${queryString}` : basePath;
+}
+
+function buildDetailPathWithReturn(
+  locale: Locale,
+  eventId: string,
+  filters: { status: EventStatusFilter; time: EventTimeFilter; host: string },
+  page: number
+) {
+  const query = new URLSearchParams();
+  if (filters.status !== "all") {
+    query.set("from_status", filters.status);
+  }
+  if (filters.time !== "all") {
+    query.set("from_time", filters.time);
+  }
+  if (filters.host !== "all") {
+    query.set("from_host", filters.host);
+  }
+  if (page > 1) {
+    query.set("from_page", String(page));
+  }
+  const queryString = query.toString();
+  const basePath = `/${locale}/events/${eventId}`;
+  return queryString ? `${basePath}?${queryString}` : basePath;
 }
 
 export default async function EventsPage({ params, searchParams }: Props) {
@@ -52,6 +108,7 @@ export default async function EventsPage({ params, searchParams }: Props) {
   const statusFilter = parseStatusFilter(query.status);
   const timeFilter = parseTimeFilter(query.time);
   const hostFilterRaw = query.host?.trim() ? query.host.trim() : "all";
+  const requestedPage = parsePage(query.page);
   const now = new Date();
 
   const hosts = await prisma.agent.findMany({
@@ -92,9 +149,15 @@ export default async function EventsPage({ params, searchParams }: Props) {
 
   const where = whereConditions.length > 0 ? { AND: whereConditions } : undefined;
 
+  const totalEvents = await prisma.event.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalEvents / EVENTS_PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+
   const filteredEvents = await prisma.event.findMany({
     where,
     orderBy: { startAt: "asc" },
+    skip: (currentPage - 1) * EVENTS_PAGE_SIZE,
+    take: EVENTS_PAGE_SIZE,
     include: {
       hostAgent: { select: { id: true, name: true } },
       _count: { select: { registrations: true, posts: true } }
@@ -103,11 +166,15 @@ export default async function EventsPage({ params, searchParams }: Props) {
 
   const stateLabel = (state: EventState) => text.eventState[state];
 
+  const filterState = { status: statusFilter, time: timeFilter, host: selectedHost };
   const basePath = `/${locale}/events`;
+  const currentListPath = buildEventsPath(locale, filterState, currentPage);
+  const hasPrevPage = currentPage > 1;
+  const hasNextPage = currentPage < totalPages;
 
   return (
     <main className="page-shell grid">
-      <LocaleSwitch locale={locale} path={basePath} />
+      <LocaleSwitch locale={locale} path={currentListPath} />
       <section className="surface">
         <SiteHeader locale={locale} title={text.eventList} subtitle={text.subtitle} />
 
@@ -157,7 +224,7 @@ export default async function EventsPage({ params, searchParams }: Props) {
         </form>
 
         <p className="muted filter-summary">
-          {text.filterResultCount} {filteredEvents.length}
+          {text.filterResultCount} {totalEvents}
         </p>
 
         <div className="grid">
@@ -189,7 +256,10 @@ export default async function EventsPage({ params, searchParams }: Props) {
                 </div>
 
                 <div className="event-actions">
-                  <Link className="button secondary" href={`/${locale}/events/${event.id}`}>
+                  <Link
+                    className="button secondary"
+                    href={buildDetailPathWithReturn(locale, event.id, filterState, currentPage)}
+                  >
                     {text.viewEvent}
                   </Link>
                   <Link className="button secondary" href={`/${locale}/agents/${event.hostAgent.id}`}>
@@ -202,6 +272,26 @@ export default async function EventsPage({ params, searchParams }: Props) {
 
           {filteredEvents.length === 0 ? <p className="muted">{text.noEvents}</p> : null}
         </div>
+
+        {hasPrevPage || hasNextPage ? (
+          <div className="timeline-pagination">
+            <p className="muted timeline-page-label">
+              {[text.pageLabel, String(currentPage), text.pageUnit].filter(Boolean).join(" ")}
+            </p>
+            <div className="timeline-pagination-actions">
+              {hasPrevPage ? (
+                <Link className="button secondary" href={buildEventsPath(locale, filterState, currentPage - 1)}>
+                  {text.previousPage}
+                </Link>
+              ) : null}
+              {hasNextPage ? (
+                <Link className="button secondary" href={buildEventsPath(locale, filterState, currentPage + 1)}>
+                  {text.nextPage}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );
