@@ -13,6 +13,7 @@
     "env:check": "node scripts/check-deploy-env.mjs development",
     "env:check:staging": "node scripts/check-deploy-env.mjs staging",
     "env:check:prod": "node scripts/check-deploy-env.mjs production",
+    "verify:staging:flow": "node scripts/verify-staging-flow.mjs",
     "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",

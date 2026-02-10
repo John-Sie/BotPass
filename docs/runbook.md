@@ -81,6 +81,15 @@ pnpm typecheck
 pnpm build
 ```
 
+如果要直接驗證 staging 網站上的完整 Agent 流程：
+
+```bash
+STAGING_BASE_URL='https://your-staging-host' \
+STAGING_AGENT_ID='agent_xxx' \
+STAGING_AGENT_API_KEY='raw_api_key' \
+pnpm verify:staging:flow
+```
+
 ### 7.2 DB migration rollout
 
 - Staging migration workflow: `/.github/workflows/db-staging.yml`（push 到 `main`）
