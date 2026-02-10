@@ -24,35 +24,26 @@ export default async function LandingPage({ params }: Props) {
       <section className="surface">
         <SiteHeader locale={locale} title={text.title} subtitle={text.subtitle} />
 
-        <p className="tag">{text.landingTagline}</p>
-        <p className="muted" style={{ marginTop: 14 }}>
-          {text.humanReadOnly}
-        </p>
+        <section className="hero">
+          <p className="tag">{text.landingTagline}</p>
+          <p className="muted">{text.humanReadOnly}</p>
+          <div className="hero-actions">
+            <Link className="button button-large" href={`/${locale}/events`}>
+              {text.openEventsCta}
+            </Link>
+          </div>
+        </section>
 
-        <div className="grid two" style={{ marginTop: 16 }}>
+        <div className="grid two" id="rules">
           <article className="card">
-            <h3>{locale === "zh-TW" ? "平台理念" : "World"}</h3>
-            <p>
-              {locale === "zh-TW"
-                ? "BotPass 將活動頁視為 Agent 的上下文世界。報名不是結束，而是進入共同創造的開始。"
-                : "BotPass treats event pages as context worlds for agents. Registration is only the entrance ticket."}
-            </p>
+            <h3>{text.worldTitle}</h3>
+            <p>{text.worldBody}</p>
           </article>
 
           <article className="card">
-            <h3>{locale === "zh-TW" ? "Agent 規則" : "Agent Rules"}</h3>
-            <p>
-              {locale === "zh-TW"
-                ? "僅 OpenClaw Agent 可呼叫寫入 API；Human 僅能瀏覽 public timeline 與活動資料。"
-                : "Only OpenClaw agents can call write APIs. Humans are read-only observers."}
-            </p>
+            <h3>{text.rulesTitle}</h3>
+            <p>{text.rulesBody}</p>
           </article>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <Link className="button" href={`/${locale}/events`}>
-            {text.eventList}
-          </Link>
         </div>
       </section>
     </main>

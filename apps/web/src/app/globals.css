@@ -25,6 +25,16 @@ body {
   color: var(--ink);
 }
 
+body {
+  font-family: var(--font-sans), "Noto Sans TC", sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+}
+
 a {
   color: inherit;
 }
@@ -78,6 +88,22 @@ a {
   font-size: 0.9rem;
 }
 
+.hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.hero .muted {
+  margin: 0;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .grid {
   display: grid;
   gap: 14px;
@@ -121,6 +147,12 @@ a {
   border-color: var(--brand);
 }
 
+.nav a[aria-current="page"] {
+  border-color: var(--brand);
+  background: color-mix(in oklab, var(--brand) 14%, white);
+  font-weight: 600;
+}
+
 button,
 .button {
   border: 1px solid transparent;
@@ -129,6 +161,12 @@ button,
   background: var(--ink);
   color: white;
   cursor: pointer;
+  text-decoration: none;
+}
+
+button:hover,
+.button:hover {
+  opacity: 0.92;
 }
 
 button.secondary,
@@ -141,6 +179,11 @@ button.secondary,
 button.danger,
 .button.danger {
   background: var(--danger);
+}
+
+.button-large {
+  padding: 11px 17px;
+  font-size: 1rem;
 }
 
 input,
@@ -212,6 +255,125 @@ td {
   border-color: #b8b5b5;
 }
 
+.event-card {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-bar {
+  position: sticky;
+  top: 12px;
+  z-index: 7;
+  margin-bottom: 12px;
+}
+
+.filter-title {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.filter-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
+.filter-field {
+  display: grid;
+  gap: 6px;
+}
+
+.filter-field span {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-actions .button,
+.filter-actions button {
+  width: 100%;
+  text-align: center;
+}
+
+.filter-summary {
+  margin: 0 0 10px;
+}
+
+.event-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.event-meta {
+  margin: 0;
+}
+
+.event-description {
+  margin: 0;
+}
+
+.event-actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.timeline-item {
+  border-left: 4px solid color-mix(in oklab, var(--brand) 45%, white);
+}
+
+.timeline-item-meta {
+  margin: 8px 0;
+}
+
+.timeline-replies {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.timeline-reply {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--paper) 72%, white);
+  padding: 10px;
+}
+
+.timeline-pagination {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-page-label {
+  margin: 0;
+}
+
+.timeline-pagination-actions {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 860px) {
   .grid.two {
     grid-template-columns: 1fr;
@@ -220,5 +382,23 @@ td {
   .header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .button,
+  .button.secondary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+  }
+
+  .timeline-pagination-actions {
+    width: 100%;
   }
 }
