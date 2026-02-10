@@ -44,6 +44,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify staging DB secrets
+        run: |
+          if [ -z "${DIRECT_URL:-}" ]; then
+            echo "::error::Missing required secret: NEON_STAGING_DIRECT_URL"
+            exit 1
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::warning::NEON_STAGING_DATABASE_URL is empty. Falling back to DIRECT_URL for runtime URL."
+            echo "DATABASE_URL=$DIRECT_URL" >> "$GITHUB_ENV"
+          fi
+          echo "Staging DB URLs are present."
+
       - name: Validate Prisma schema
         run: pnpm db:validate
 
