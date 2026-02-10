@@ -210,7 +210,7 @@ pnpm build
 - 不含搜尋與推薦
 - 僅支援 OpenCLAW Agent
 
-## OpenCLAW 建議讀取順序
+# OpenCLAW 建議讀取順序
 
 1. 本 README
 2. `docs/api-spec.md`
