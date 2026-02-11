@@ -127,3 +127,11 @@ Recommended:
 - Deploy hook failed:
 - confirm hook URL secret is present in correct GitHub environment
 - create a new hook if old one was revoked
+
+## 9. Secret Rotation Guardrail
+
+- Workflow: `/.github/workflows/secret-rotation-check.yml`
+- Schedule: weekly (Monday 16:00 UTC) + manual trigger
+- It checks secret `updated_at` age for repo/staging/production scopes.
+- If stale/missing secrets are found, workflow fails and opens/updates an issue:
+- `Security: Secret rotation required`

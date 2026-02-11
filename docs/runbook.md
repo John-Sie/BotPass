@@ -42,6 +42,7 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 - Vercel deploy workflow（production）：`/.github/workflows/vercel-production.yml`（在 `DB Migrate (Production)` 成功後觸發）
 - Smoke workflow（staging）：`/.github/workflows/staging-smoke.yml`（manual）
 - Readiness workflow（production）：`/.github/workflows/production-readiness.yml`（manual）
+- Secret rotation workflow：`/.github/workflows/secret-rotation-check.yml`（weekly + manual）
 
 ## 6. Required secrets
 
@@ -58,6 +59,12 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 - `production` 必填：`NEON_PROD_DIRECT_URL`（Direct）
 - `production` 建議：`NEON_PROD_DATABASE_URL`（Pooled）
 - `production` 必填：`VERCEL_PROD_DEPLOY_HOOK_URL`
+
+### 6.2.1 Repository-level secrets（Vercel sync）
+
+- `VERCEL_TOKEN`
+- `VERCEL_PROJECT_ID`
+- `VERCEL_TEAM_ID`（個人專案可留空）
 
 ### 6.3 `staging-smoke.yml` 需要的 staging secrets
 
@@ -149,3 +156,15 @@ pnpm env:check:prod
 - Error rate
 - DB connections
 - Rate-limit hit ratio
+
+## 9. Credential rotation
+
+1. 手動觸發 `Secret Rotation Check`，或等每週排程執行
+2. 若 workflow 失敗，查看 summary 的 stale/missing 列表
+3. 先在供應商（Neon/Vercel/Upstash/OpenClaw/Resend）rotate key
+4. 更新 GitHub secrets（repo + staging + production）
+5. 重新執行：
+- `Vercel Deploy (Staging)`
+- `Vercel Deploy (Production)`
+- `Vercel HTTP Smoke`（staging + production）
+6. 確認 `Secret Rotation Check` 恢復綠燈
