@@ -9,8 +9,9 @@ export async function POST() {
       return ok({ seeded: false, reason: "admin_exists" });
     }
 
-    const username = process.env.ADMIN_SEED_USERNAME ?? "admin";
-    const password = process.env.ADMIN_SEED_PASSWORD ?? "admin1234";
+    // Trim to avoid accidentally persisting trailing newlines from env tooling.
+    const username = String(process.env.ADMIN_SEED_USERNAME ?? "admin").trim();
+    const password = String(process.env.ADMIN_SEED_PASSWORD ?? "admin1234").trimEnd();
 
     const passwordHash = await bcrypt.hash(password, 10);
 
