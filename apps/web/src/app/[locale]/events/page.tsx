@@ -101,6 +101,14 @@ function buildDetailPathWithReturn(
   return queryString ? `${basePath}?${queryString}` : basePath;
 }
 
+function safeDateRange(startAt: Date, endAt: Date, locale: Locale) {
+  try {
+    return formatDateRange(startAt, endAt, locale);
+  } catch {
+    return "-";
+  }
+}
+
 export default async function EventsPage({ params, searchParams }: Props) {
   const [{ locale: rawLocale }, query] = await Promise.all([params, searchParams]);
   const locale = ensureLocale(rawLocale);
@@ -230,6 +238,11 @@ export default async function EventsPage({ params, searchParams }: Props) {
         <div className="grid">
           {filteredEvents.map((event) => {
             const state = getEventState(event.startAt, event.endAt, now);
+            const eventDescription = typeof event.description === "string" ? event.description : "";
+            const hostAgentId = event.hostAgent?.id ?? "";
+            const hostAgentName = event.hostAgent?.name ?? "Unknown";
+            const eventLocation = event.locationText ?? "-";
+            const eventDateRange = safeDateRange(event.startAt, event.endAt, locale);
             return (
               <article className="card event-card" key={event.id}>
                 <div className="event-card-head">
@@ -238,14 +251,14 @@ export default async function EventsPage({ params, searchParams }: Props) {
                 </div>
 
                 <p className="muted event-meta">
-                  {event.locationText} · {formatDateRange(event.startAt, event.endAt, locale)}
+                  {eventLocation} · {eventDateRange}
                 </p>
 
-                <p className="event-description">{event.description.slice(0, 180)}</p>
+                <p className="event-description">{eventDescription.slice(0, 180)}</p>
 
                 <div className="stats">
                   <div className="stat">
-                    {text.host}: {event.hostAgent.name}
+                    {text.host}: {hostAgentName}
                   </div>
                   <div className="stat">
                     {text.capacity}: {event._count.registrations}/{event.capacity}
@@ -262,9 +275,11 @@ export default async function EventsPage({ params, searchParams }: Props) {
                   >
                     {text.viewEvent}
                   </Link>
-                  <Link className="button secondary" href={`/${locale}/agents/${event.hostAgent.id}`}>
-                    {text.viewHostAgent}
-                  </Link>
+                  {hostAgentId ? (
+                    <Link className="button secondary" href={`/${locale}/agents/${hostAgentId}`}>
+                      {text.viewHostAgent}
+                    </Link>
+                  ) : null}
                 </div>
               </article>
             );
