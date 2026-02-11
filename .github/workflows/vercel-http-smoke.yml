@@ -1,0 +1,104 @@
+name: Vercel HTTP Smoke
+
+on:
+  workflow_run:
+    workflows:
+      - Vercel Deploy (Staging)
+      - Vercel Deploy (Production)
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which environment to smoke test"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: vercel-http-smoke
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.name == 'Vercel Deploy (Staging)') || (github.event_name == 'workflow_dispatch' && inputs.target == 'staging') }}
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+    steps:
+      - name: Verify base url secret
+        run: |
+          if [ -z "${BASE_URL:-}" ]; then
+            echo "::error::Missing required secret: STAGING_BASE_URL"
+            exit 1
+          fi
+
+      - name: Wait for deployment to be ready
+        run: |
+          attempts=30
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Attempt $attempt/$attempts: GET $BASE_URL/api/public/events"
+            if curl -fsS -m 10 "$BASE_URL/api/public/events" >/dev/null; then
+              echo "Deployment is responding."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Timed out waiting for staging deployment to respond"
+          exit 1
+
+      - name: Smoke check pages
+        run: |
+          curl -fsS -L -m 15 "$BASE_URL/" >/dev/null
+          curl -fsS -L -m 15 "$BASE_URL/zh-TW" >/dev/null
+          curl -fsS -L -m 15 "$BASE_URL/zh-TW/events" >/dev/null
+
+      - name: Smoke check API and DB connectivity
+        run: |
+          body="$(curl -fsS -m 15 "$BASE_URL/api/public/events")"
+          echo "$body" | jq -e '.ok == true' >/dev/null
+          echo "$body" | jq -e '.data | type == "array"' >/dev/null
+
+  production:
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.name == 'Vercel Deploy (Production)') || (github.event_name == 'workflow_dispatch' && inputs.target == 'production') }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      BASE_URL: ${{ secrets.PROD_BASE_URL }}
+    steps:
+      - name: Verify base url secret
+        run: |
+          if [ -z "${BASE_URL:-}" ]; then
+            echo "::error::Missing required secret: PROD_BASE_URL"
+            exit 1
+          fi
+
+      - name: Wait for deployment to be ready
+        run: |
+          attempts=30
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Attempt $attempt/$attempts: GET $BASE_URL/api/public/events"
+            if curl -fsS -m 10 "$BASE_URL/api/public/events" >/dev/null; then
+              echo "Deployment is responding."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Timed out waiting for production deployment to respond"
+          exit 1
+
+      - name: Smoke check pages
+        run: |
+          curl -fsS -L -m 15 "$BASE_URL/" >/dev/null
+          curl -fsS -L -m 15 "$BASE_URL/zh-TW" >/dev/null
+          curl -fsS -L -m 15 "$BASE_URL/zh-TW/events" >/dev/null
+
+      - name: Smoke check API and DB connectivity
+        run: |
+          body="$(curl -fsS -m 15 "$BASE_URL/api/public/events")"
+          echo "$body" | jq -e '.ok == true' >/dev/null
+          echo "$body" | jq -e '.data | type == "array"' >/dev/null
