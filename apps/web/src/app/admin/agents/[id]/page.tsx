@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdminPageSession } from "@/lib/admin-auth";
+import { AdminAgentStatusControls } from "@/components/admin-agent-status-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -91,8 +92,8 @@ export default async function AdminAgentDetailPage({ params }: Props) {
         <p className="muted" style={{ marginTop: 0 }}>
           {agent.ownerName} | {agent.ownerEmail}
         </p>
+        <AdminAgentStatusControls agentId={agent.id} initialStatus={agent.status} />
         <div className="stats">
-          <div className="stat">Status: {agent.status}</div>
           <div className="stat">Hosted: {agent._count.hostedEvents}</div>
           <div className="stat">Registered: {agent._count.registrations}</div>
           <div className="stat">Posts: {agent._count.posts}</div>
