@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 
 export const dynamic = "force-dynamic";
@@ -7,8 +6,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 
-  if (!session?.user?.id) {
-    redirect("/admin/login");
+  const isAdmin = Boolean(session?.user?.id && session.user.role === "admin");
+
+  if (!isAdmin) {
+    return <main className="page-shell">{children}</main>;
   }
 
   return (

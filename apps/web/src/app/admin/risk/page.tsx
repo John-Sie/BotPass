@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/db";
+import { requireAdminPageSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRiskPage() {
+  await requireAdminPageSession();
+
   const actions = await prisma.moderationAction.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,

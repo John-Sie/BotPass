@@ -1,9 +1,12 @@
 import { prisma } from "@/lib/db";
 import { AdminAgentsTable } from "@/components/admin-agents-table";
+import { requireAdminPageSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAgentsPage() {
+  await requireAdminPageSession();
+
   const agents = await prisma.agent.findMany({
     orderBy: { createdAt: "desc" },
     include: {

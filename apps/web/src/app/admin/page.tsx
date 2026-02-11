@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/db";
+import { requireAdminPageSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  await requireAdminPageSession();
+
   const [agentCount, eventCount, registrationCount, postCount, auditCount, moderationCount] = await Promise.all([
     prisma.agent.count(),
     prisma.event.count(),

@@ -1,9 +1,12 @@
 import { getEventState } from "@botpass/core";
 import { prisma } from "@/lib/db";
+import { requireAdminPageSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEventsPage() {
+  await requireAdminPageSession();
+
   const now = new Date();
 
   const events = await prisma.event.findMany({
