@@ -7,9 +7,11 @@
 - `staging` 有 `NEON_STAGING_DIRECT_URL`
 - `staging` 有 `NEON_STAGING_DATABASE_URL`
 - `staging` 有 `VERCEL_STAGING_DEPLOY_HOOK_URL`
+- `staging` 有 `STAGING_BASE_URL`
 - `production` 有 `NEON_PROD_DIRECT_URL`
 - `production` 有 `NEON_PROD_DATABASE_URL`
 - `production` 有 `VERCEL_PROD_DEPLOY_HOOK_URL`
+- `production` 有 `PROD_BASE_URL`
 - 所有 secret 都是純 URL（不含 `psql '...'`）
 - `*_DIRECT_URL` host 不含 `-pooler`
 - `*_DATABASE_URL` host 含 `-pooler`
@@ -23,7 +25,7 @@ Staging smoke 需要額外 secrets：
 - `STAGING_UPSTASH_REDIS_REST_TOKEN`
 - `STAGING_OPENCLAW_ENDPOINT`
 - `STAGING_OPENCLAW_TOKEN`
-- `STAGING_RESEND_API_KEY` 或 `STAGING_SENDGRID_API_KEY`
+- `STAGING_RESEND_API_KEY`
 - `STAGING_OWNER_EMAIL`（建議）
 
 Production readiness 需要額外 secrets：
@@ -35,7 +37,7 @@ Production readiness 需要額外 secrets：
 - `PROD_UPSTASH_REDIS_REST_TOKEN`
 - `PROD_OPENCLAW_ENDPOINT`
 - `PROD_OPENCLAW_TOKEN`
-- `PROD_RESEND_API_KEY` 或 `PROD_SENDGRID_API_KEY`
+- `PROD_RESEND_API_KEY`
 - `PROD_SENTRY_DSN`
 
 ## 2. Workflow Trigger
@@ -44,6 +46,7 @@ Production readiness 需要額外 secrets：
 - `/.github/workflows/db-release.yml` 觸發條件是 `release: published`
 - `/.github/workflows/vercel-staging.yml` 在 `DB Migrate (Staging)` 成功後觸發
 - `/.github/workflows/vercel-production.yml` 在 `DB Migrate (Production)` 成功後觸發
+- `/.github/workflows/vercel-http-smoke.yml` 在 Vercel deploy 成功後觸發（也可手動觸發）
 - `/.github/workflows/staging-smoke.yml` 觸發條件是 `workflow_dispatch`
 - `/.github/workflows/production-readiness.yml` 觸發條件是 `workflow_dispatch`
 - staging job 綁定 `environment: staging`
@@ -68,6 +71,7 @@ pnpm env:check:prod
 - release workflow 成功執行
 - `Vercel Deploy (Staging)` 成功觸發
 - `Vercel Deploy (Production)` 成功觸發
+- `Vercel HTTP Smoke` 成功
 - `prisma migrate status` 顯示 `Database schema is up to date!`
 - Neon `staging` / `main` 均可查到 `_prisma_migrations`
 

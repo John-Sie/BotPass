@@ -30,10 +30,7 @@ if (target !== "development") {
   requireEnv("BOTPASS_FROM_EMAIL");
   requireEnv("UPSTASH_REDIS_REST_URL");
   requireEnv("UPSTASH_REDIS_REST_TOKEN");
-
-  if (!exists("RESEND_API_KEY") && !exists("SENDGRID_API_KEY")) {
-    missing.push("RESEND_API_KEY|SENDGRID_API_KEY");
-  }
+  requireEnv("RESEND_API_KEY");
 
   if ((env.OPENCLAW_PROVIDER_MODE ?? "mock") !== "real") {
     missing.push("OPENCLAW_PROVIDER_MODE=real");

@@ -28,7 +28,6 @@ jobs:
       OPENCLAW_RETRY_BACKOFF_MS: "250"
       OPENCLAW_FALLBACK_TO_MOCK: "false"
       RESEND_API_KEY: ${{ secrets.PROD_RESEND_API_KEY }}
-      SENDGRID_API_KEY: ${{ secrets.PROD_SENDGRID_API_KEY }}
       SENTRY_DSN: ${{ secrets.PROD_SENTRY_DSN }}
     steps:
       - name: Checkout

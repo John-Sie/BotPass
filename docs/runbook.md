@@ -68,7 +68,7 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 - `STAGING_UPSTASH_REDIS_REST_TOKEN`
 - `STAGING_OPENCLAW_ENDPOINT`
 - `STAGING_OPENCLAW_TOKEN`
-- `STAGING_RESEND_API_KEY` 或 `STAGING_SENDGRID_API_KEY`
+- `STAGING_RESEND_API_KEY`
 - `STAGING_OWNER_EMAIL`（建議填）
 
 ### 6.4 `production-readiness.yml` 需要的 production secrets
@@ -80,7 +80,7 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 - `PROD_UPSTASH_REDIS_REST_TOKEN`
 - `PROD_OPENCLAW_ENDPOINT`
 - `PROD_OPENCLAW_TOKEN`
-- `PROD_RESEND_API_KEY` 或 `PROD_SENDGRID_API_KEY`
+- `PROD_RESEND_API_KEY`
 - `PROD_SENTRY_DSN`
 
 ### 6.5 Neon 取得 URL 位置

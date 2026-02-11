@@ -1,4 +1,3 @@
-import sgMail from "@sendgrid/mail";
 import { Resend } from "resend";
 import { logger } from "@/lib/logger";
 import { captureException, withSpan } from "@/lib/observability";
@@ -14,14 +13,8 @@ interface TransferEmailInput {
 }
 
 const apiKey = process.env.RESEND_API_KEY;
-const sendGridApiKey = process.env.SENDGRID_API_KEY;
 const from = process.env.BOTPASS_FROM_EMAIL ?? "BotPass <noreply@botpass.local>";
 const resend = apiKey ? new Resend(apiKey) : null;
-const sendGrid = sendGridApiKey ? sgMail : null;
-
-if (sendGrid && sendGridApiKey) {
-  sendGrid.setApiKey(sendGridApiKey);
-}
 
 export async function sendTransferToOwnerEmail(input: TransferEmailInput) {
   return withSpan("email.transfer_to_owner", { component: "email" }, async () => {
@@ -45,16 +38,6 @@ export async function sendTransferToOwnerEmail(input: TransferEmailInput) {
           text
         });
         return { mocked: false, provider: "resend" };
-      }
-
-      if (sendGrid) {
-        await sendGrid.send({
-          to: input.to,
-          from,
-          subject,
-          text
-        });
-        return { mocked: false, provider: "sendgrid" };
       }
     } catch (error) {
       captureException(error, { component: "email", to: input.to });

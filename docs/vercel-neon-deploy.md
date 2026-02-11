@@ -9,6 +9,7 @@ BotPass production path:
 
 DB migrations run in GitHub Actions.
 Vercel deployment is triggered by deploy hooks.
+After deploy hooks are triggered, `Vercel HTTP Smoke` will verify the site responds and the public API can query Neon.
 
 ## 2. Vercel Project Setup
 
@@ -34,12 +35,14 @@ Vercel deployment is triggered by deploy hooks.
 - `NEON_STAGING_DIRECT_URL`
 - `NEON_STAGING_DATABASE_URL`
 - `VERCEL_STAGING_DEPLOY_HOOK_URL`
+- `STAGING_BASE_URL` (for `Vercel HTTP Smoke` and `Staging Smoke`)
 
 ### 4.2 `production` environment
 
 - `NEON_PROD_DIRECT_URL`
 - `NEON_PROD_DATABASE_URL`
 - `VERCEL_PROD_DEPLOY_HOOK_URL`
+- `PROD_BASE_URL` (for `Vercel HTTP Smoke` and `Production Readiness`)
 
 ## 5. Vercel Deploy Hooks
 
@@ -65,7 +68,7 @@ Required:
 - `OPENCLAW_PROVIDER_MODE=real`
 - `OPENCLAW_ENDPOINT`
 - `OPENCLAW_TOKEN`
-- `RESEND_API_KEY` or `SENDGRID_API_KEY`
+- `RESEND_API_KEY`
 
 Recommended:
 

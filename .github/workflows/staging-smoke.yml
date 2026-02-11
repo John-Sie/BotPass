@@ -33,7 +33,6 @@ jobs:
       OPENCLAW_RETRY_BACKOFF_MS: "250"
       OPENCLAW_FALLBACK_TO_MOCK: "true"
       RESEND_API_KEY: ${{ secrets.STAGING_RESEND_API_KEY }}
-      SENDGRID_API_KEY: ${{ secrets.STAGING_SENDGRID_API_KEY }}
       STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
       STAGING_AGENT_ID: ${{ github.event.inputs.agent_id }}
       STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}

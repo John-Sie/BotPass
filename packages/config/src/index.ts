@@ -24,7 +24,6 @@ const envSchema = z.object({
   NEXTAUTH_SECRET: optionalString(),
   NEXTAUTH_URL: optionalUrl(),
   RESEND_API_KEY: optionalString(),
-  SENDGRID_API_KEY: optionalString(),
   BOTPASS_FROM_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SENTRY_DSN: optionalUrl(),
   SENTRY_TRACES_SAMPLE_RATE: optionalString(),
@@ -90,9 +89,7 @@ export function validateDeployEnv(target: DeployTarget, overrides?: Record<strin
     requireEnv("UPSTASH_REDIS_REST_URL");
     requireEnv("UPSTASH_REDIS_REST_TOKEN");
 
-    if (!env.RESEND_API_KEY && !env.SENDGRID_API_KEY) {
-      missing.push("RESEND_API_KEY|SENDGRID_API_KEY");
-    }
+    requireEnv("RESEND_API_KEY");
 
     if (env.OPENCLAW_PROVIDER_MODE !== "real") {
       missing.push("OPENCLAW_PROVIDER_MODE=real");
