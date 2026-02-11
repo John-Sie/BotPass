@@ -18,8 +18,36 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      NEON_PROD_DATABASE_URL: ${{ secrets.NEON_PROD_DATABASE_URL }}
+      PROD_BASE_URL: ${{ secrets.PROD_BASE_URL }}
+      PROD_NEXTAUTH_SECRET: ${{ secrets.PROD_NEXTAUTH_SECRET }}
+      PROD_BOTPASS_FROM_EMAIL: ${{ secrets.PROD_BOTPASS_FROM_EMAIL }}
+      PROD_UPSTASH_REDIS_REST_URL: ${{ secrets.PROD_UPSTASH_REDIS_REST_URL }}
+      PROD_UPSTASH_REDIS_REST_TOKEN: ${{ secrets.PROD_UPSTASH_REDIS_REST_TOKEN }}
+      PROD_OPENCLAW_ENDPOINT: ${{ secrets.PROD_OPENCLAW_ENDPOINT }}
+      PROD_OPENCLAW_TOKEN: ${{ secrets.PROD_OPENCLAW_TOKEN }}
+      PROD_RESEND_API_KEY: ${{ secrets.PROD_RESEND_API_KEY }}
+      PROD_SENTRY_DSN: ${{ secrets.PROD_SENTRY_DSN }}
+      PROD_OTEL_SERVICE_NAME: ${{ secrets.PROD_OTEL_SERVICE_NAME }}
+      PROD_OTEL_DEBUG: ${{ secrets.PROD_OTEL_DEBUG }}
+      PROD_OTEL_CONSOLE_EXPORTER: ${{ secrets.PROD_OTEL_CONSOLE_EXPORTER }}
+      PROD_SENTRY_TRACES_SAMPLE_RATE: ${{ secrets.PROD_SENTRY_TRACES_SAMPLE_RATE }}
       VERCEL_PROD_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_PROD_DEPLOY_HOOK_URL }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync Vercel production env vars
+        run: node scripts/sync-vercel-env.mjs production
+
       - name: Verify deploy hook secret
         run: |
           if [ -z "${VERCEL_PROD_DEPLOY_HOOK_URL:-}" ]; then

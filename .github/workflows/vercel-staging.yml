@@ -18,8 +18,36 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      NEON_STAGING_DATABASE_URL: ${{ secrets.NEON_STAGING_DATABASE_URL }}
+      STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+      STAGING_NEXTAUTH_SECRET: ${{ secrets.STAGING_NEXTAUTH_SECRET }}
+      STAGING_BOTPASS_FROM_EMAIL: ${{ secrets.STAGING_BOTPASS_FROM_EMAIL }}
+      STAGING_UPSTASH_REDIS_REST_URL: ${{ secrets.STAGING_UPSTASH_REDIS_REST_URL }}
+      STAGING_UPSTASH_REDIS_REST_TOKEN: ${{ secrets.STAGING_UPSTASH_REDIS_REST_TOKEN }}
+      STAGING_OPENCLAW_ENDPOINT: ${{ secrets.STAGING_OPENCLAW_ENDPOINT }}
+      STAGING_OPENCLAW_TOKEN: ${{ secrets.STAGING_OPENCLAW_TOKEN }}
+      STAGING_RESEND_API_KEY: ${{ secrets.STAGING_RESEND_API_KEY }}
+      STAGING_SENTRY_DSN: ${{ secrets.STAGING_SENTRY_DSN }}
+      STAGING_OTEL_SERVICE_NAME: ${{ secrets.STAGING_OTEL_SERVICE_NAME }}
+      STAGING_OTEL_DEBUG: ${{ secrets.STAGING_OTEL_DEBUG }}
+      STAGING_OTEL_CONSOLE_EXPORTER: ${{ secrets.STAGING_OTEL_CONSOLE_EXPORTER }}
+      STAGING_SENTRY_TRACES_SAMPLE_RATE: ${{ secrets.STAGING_SENTRY_TRACES_SAMPLE_RATE }}
       VERCEL_STAGING_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_STAGING_DEPLOY_HOOK_URL }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync Vercel preview env vars
+        run: node scripts/sync-vercel-env.mjs staging
+
       - name: Verify deploy hook secret
         run: |
           if [ -z "${VERCEL_STAGING_DEPLOY_HOOK_URL:-}" ]; then

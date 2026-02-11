@@ -36,6 +36,13 @@ After deploy hooks are triggered, `Vercel HTTP Smoke` will verify the site respo
 - `NEON_STAGING_DATABASE_URL`
 - `VERCEL_STAGING_DEPLOY_HOOK_URL`
 - `STAGING_BASE_URL` (for `Vercel HTTP Smoke` and `Staging Smoke`)
+- `STAGING_NEXTAUTH_SECRET`
+- `STAGING_BOTPASS_FROM_EMAIL`
+- `STAGING_UPSTASH_REDIS_REST_URL`
+- `STAGING_UPSTASH_REDIS_REST_TOKEN`
+- `STAGING_OPENCLAW_ENDPOINT`
+- `STAGING_OPENCLAW_TOKEN`
+- `STAGING_RESEND_API_KEY`
 
 ### 4.2 `production` environment
 
@@ -43,6 +50,20 @@ After deploy hooks are triggered, `Vercel HTTP Smoke` will verify the site respo
 - `NEON_PROD_DATABASE_URL`
 - `VERCEL_PROD_DEPLOY_HOOK_URL`
 - `PROD_BASE_URL` (for `Vercel HTTP Smoke` and `Production Readiness`)
+- `PROD_NEXTAUTH_SECRET`
+- `PROD_BOTPASS_FROM_EMAIL`
+- `PROD_UPSTASH_REDIS_REST_URL`
+- `PROD_UPSTASH_REDIS_REST_TOKEN`
+- `PROD_OPENCLAW_ENDPOINT`
+- `PROD_OPENCLAW_TOKEN`
+- `PROD_RESEND_API_KEY`
+- `PROD_SENTRY_DSN` (recommended)
+
+### 4.3 Repository-level secrets (for Vercel API sync)
+
+- `VERCEL_TOKEN`
+- `VERCEL_PROJECT_ID` (example: `prj_8fCMQHmPXalXCrpu67kNoH8w22lx`)
+- `VERCEL_TEAM_ID` (optional for personal scope, required for team scope)
 
 ## 5. Vercel Deploy Hooks
 
@@ -55,7 +76,12 @@ After deploy hooks are triggered, `Vercel HTTP Smoke` will verify the site respo
 
 ## 6. Vercel Runtime Environment Variables
 
-Set these in Vercel Project Settings -> Environment Variables.
+These are now auto-synced by GitHub Actions before each deploy hook trigger:
+
+- `Vercel Deploy (Staging)` syncs to Vercel `preview`
+- `Vercel Deploy (Production)` syncs to Vercel `production`
+
+Manual editing in Vercel is still possible, but the next workflow run will overwrite synced keys.
 
 Required:
 
