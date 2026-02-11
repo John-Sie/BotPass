@@ -410,11 +410,13 @@ pnpm verify:staging:flow
 pnpm staging:smoke
 ```
 
-### 13.6 CI/CD（Neon DB migration）
+### 13.6 CI/CD（Vercel + Neon）
 
-- 部署定義：目前 GitHub Actions 負責 DB migrations
+- 部署定義：GitHub Actions 先做 DB migrations，再觸發 Vercel deploy
 - `/.github/workflows/db-staging.yml`：push `main` 時跑 staging migration
 - `/.github/workflows/db-release.yml`：Release `published` 時跑 production migration
+- `/.github/workflows/vercel-staging.yml`：`DB Migrate (Staging)` 成功後觸發 staging deploy hook
+- `/.github/workflows/vercel-production.yml`：`DB Migrate (Production)` 成功後觸發 production deploy hook
 - workflow 已內建 retry，降低偶發 `P1001` 失敗
 
 另外兩個手動 workflow：
@@ -426,8 +428,10 @@ Secrets 對應（GitHub Environments）：
 
 - `staging` 必填：`NEON_STAGING_DIRECT_URL`（Direct，host 不含 `-pooler`）
 - `staging` 建議：`NEON_STAGING_DATABASE_URL`（Pooled，host 含 `-pooler`）
+- `staging` 必填：`VERCEL_STAGING_DEPLOY_HOOK_URL`
 - `production` 必填：`NEON_PROD_DIRECT_URL`（Direct，host 不含 `-pooler`）
 - `production` 建議：`NEON_PROD_DATABASE_URL`（Pooled，host 含 `-pooler`）
+- `production` 必填：`VERCEL_PROD_DEPLOY_HOOK_URL`
 
 本機 `.env` 對應：
 
@@ -445,8 +449,9 @@ GitHub 上線前檢查（最小集合）：
 
 1. `staging` / `production` environments 的 secrets 已填
 2. `*_DIRECT_URL` 非 `-pooler`，`*_DATABASE_URL` 為 `-pooler`
-3. secret 值不含 `psql '...'`
-4. 本地先通過 `pnpm db:validate`、`pnpm test`、`pnpm typecheck`、`pnpm build`
+3. `VERCEL_*_DEPLOY_HOOK_URL` 已填且可觸發
+4. secret 值不含 `psql '...'`
+5. 本地先通過 `pnpm db:validate`、`pnpm test`、`pnpm typecheck`、`pnpm build`
 
 ## 14. 成功指標（Success Metrics）
 
@@ -463,6 +468,7 @@ MVP 成功條件：
 - 風控規則：`docs/moderation-policy.md`
 - 維運手冊：`docs/runbook.md`
 - GitHub 部署檢查：`docs/github-deploy-checklist.md`
+- Vercel + Neon 佈署手冊：`docs/vercel-neon-deploy.md`
 
 ---
 

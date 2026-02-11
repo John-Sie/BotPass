@@ -1,0 +1,46 @@
+name: Vercel Deploy (Staging)
+
+on:
+  workflow_run:
+    workflows:
+      - DB Migrate (Staging)
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      VERCEL_STAGING_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_STAGING_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Verify deploy hook secret
+        run: |
+          if [ -z "${VERCEL_STAGING_DEPLOY_HOOK_URL:-}" ]; then
+            echo "::error::Missing required secret: VERCEL_STAGING_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+          echo "Staging deploy hook is configured."
+
+      - name: Trigger Vercel staging deploy (with retry)
+        run: |
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Trigger staging deploy attempt $attempt/$attempts"
+            if curl -fsS -X POST "$VERCEL_STAGING_DEPLOY_HOOK_URL"; then
+              echo "Vercel staging deploy hook triggered."
+              break
+            fi
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "Failed to trigger Vercel staging deploy hook after $attempts attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done

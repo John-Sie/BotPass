@@ -6,8 +6,10 @@
 - `production` environment 已建立
 - `staging` 有 `NEON_STAGING_DIRECT_URL`
 - `staging` 有 `NEON_STAGING_DATABASE_URL`
+- `staging` 有 `VERCEL_STAGING_DEPLOY_HOOK_URL`
 - `production` 有 `NEON_PROD_DIRECT_URL`
 - `production` 有 `NEON_PROD_DATABASE_URL`
+- `production` 有 `VERCEL_PROD_DEPLOY_HOOK_URL`
 - 所有 secret 都是純 URL（不含 `psql '...'`）
 - `*_DIRECT_URL` host 不含 `-pooler`
 - `*_DATABASE_URL` host 含 `-pooler`
@@ -40,6 +42,8 @@ Production readiness 需要額外 secrets：
 
 - `/.github/workflows/db-staging.yml` 觸發條件是 `push` 到 `main`
 - `/.github/workflows/db-release.yml` 觸發條件是 `release: published`
+- `/.github/workflows/vercel-staging.yml` 在 `DB Migrate (Staging)` 成功後觸發
+- `/.github/workflows/vercel-production.yml` 在 `DB Migrate (Production)` 成功後觸發
 - `/.github/workflows/staging-smoke.yml` 觸發條件是 `workflow_dispatch`
 - `/.github/workflows/production-readiness.yml` 觸發條件是 `workflow_dispatch`
 - staging job 綁定 `environment: staging`
@@ -62,12 +66,14 @@ pnpm env:check:prod
 
 - staging workflow 成功執行
 - release workflow 成功執行
+- `Vercel Deploy (Staging)` 成功觸發
+- `Vercel Deploy (Production)` 成功觸發
 - `prisma migrate status` 顯示 `Database schema is up to date!`
 - Neon `staging` / `main` 均可查到 `_prisma_migrations`
 
 ## 5. Recommended Run Order
 
 1. 執行 `Staging Smoke`（手動）
-2. 觸發 `DB Migrate (Staging)`（push 到 `main`）
+2. push 到 `main` 觸發 `DB Migrate (Staging)`，成功後自動觸發 `Vercel Deploy (Staging)`
 3. 執行 `Production Readiness`（手動）
-4. 發佈 release 觸發 `DB Migrate (Production)`
+4. 發佈 release 觸發 `DB Migrate (Production)`，成功後自動觸發 `Vercel Deploy (Production)`

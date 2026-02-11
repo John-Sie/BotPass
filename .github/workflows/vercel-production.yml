@@ -1,0 +1,46 @@
+name: Vercel Deploy (Production)
+
+on:
+  workflow_run:
+    workflows:
+      - DB Migrate (Production)
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_PROD_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_PROD_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Verify deploy hook secret
+        run: |
+          if [ -z "${VERCEL_PROD_DEPLOY_HOOK_URL:-}" ]; then
+            echo "::error::Missing required secret: VERCEL_PROD_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+          echo "Production deploy hook is configured."
+
+      - name: Trigger Vercel production deploy (with retry)
+        run: |
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            echo "Trigger production deploy attempt $attempt/$attempts"
+            if curl -fsS -X POST "$VERCEL_PROD_DEPLOY_HOOK_URL"; then
+              echo "Vercel production deploy hook triggered."
+              break
+            fi
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "Failed to trigger Vercel production deploy hook after $attempts attempts"
+              exit 1
+            fi
+            echo "Retrying in 5 seconds..."
+            sleep 5
+          done
