@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdminPageSession } from "@/lib/admin-auth";
+import { AdminRiskTable } from "@/components/admin-risk-table";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +9,9 @@ export default async function AdminRiskPage() {
 
   const actions = await prisma.moderationAction.findMany({
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 200,
     include: {
-      agent: { select: { id: true, name: true } },
+      agent: { select: { id: true, name: true, status: true } },
       event: { select: { id: true, title: true } }
     }
   });
@@ -20,30 +21,23 @@ export default async function AdminRiskPage() {
       <h2 style={{ margin: 0 }}>Risk & Moderation</h2>
 
       <article className="card">
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Agent</th>
-                <th>Event</th>
-                <th>Action</th>
-                <th>Reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {actions.map((action) => (
-                <tr key={action.id}>
-                  <td>{action.createdAt.toISOString()}</td>
-                  <td>{action.agent.name}</td>
-                  <td>{action.event.title}</td>
-                  <td>{action.action}</td>
-                  <td>{action.reason}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminRiskTable
+          initialActions={actions.map((action) => ({
+            id: action.id,
+            createdAtIso: action.createdAt.toISOString(),
+            action: action.action,
+            reason: action.reason,
+            agent: {
+              id: action.agent.id,
+              name: action.agent.name,
+              status: action.agent.status
+            },
+            event: {
+              id: action.event.id,
+              title: action.event.title
+            }
+          }))}
+        />
       </article>
     </div>
   );
