@@ -52,6 +52,8 @@ const headers = {
   "X-GitHub-Api-Version": "2022-11-28",
 };
 
+const warnings = [];
+
 const fetchJson = async (url) => {
   const response = await fetch(url, { headers });
   if (!response.ok) {
@@ -130,15 +132,66 @@ const writeGithubOutput = async (key, value) => {
 };
 
 const run = async () => {
-  const [repoSecrets, stagingSecrets, productionSecrets] = await Promise.all([
-    listRepoSecrets(),
-    listEnvSecrets("staging"),
-    listEnvSecrets("production"),
+  const loadScope = async (scopeName, loader) => {
+    try {
+      const secrets = await loader();
+      return { available: true, secrets };
+    } catch (error) {
+      warnings.push(
+        `${scopeName} secrets are not accessible with current token; set SECRET_AUDIT_TOKEN for full rotation audit`
+      );
+      return { available: false, secrets: [] };
+    }
+  };
+
+  const [repoScope, stagingScope, productionScope] = await Promise.all([
+    loadScope("repo", listRepoSecrets),
+    loadScope("staging", () => listEnvSecrets("staging")),
+    loadScope("production", () => listEnvSecrets("production")),
   ]);
 
-  const repoResult = evaluate("repo", repoSecrets, policy.repo);
-  const stagingResult = evaluate("staging", stagingSecrets, policy.staging);
-  const productionResult = evaluate("production", productionSecrets, policy.production);
+  const repoResult = repoScope.available
+    ? evaluate("repo", repoScope.secrets, policy.repo)
+    : {
+        rows: policy.repo.map((rule) => ({
+          scope: "repo",
+          name: rule.name,
+          maxDays: rule.maxDays,
+          ageDays: null,
+          updatedAt: null,
+          status: "unavailable",
+        })),
+        staleCount: 0,
+        missingCount: 0,
+      };
+  const stagingResult = stagingScope.available
+    ? evaluate("staging", stagingScope.secrets, policy.staging)
+    : {
+        rows: policy.staging.map((rule) => ({
+          scope: "staging",
+          name: rule.name,
+          maxDays: rule.maxDays,
+          ageDays: null,
+          updatedAt: null,
+          status: "unavailable",
+        })),
+        staleCount: 0,
+        missingCount: 0,
+      };
+  const productionResult = productionScope.available
+    ? evaluate("production", productionScope.secrets, policy.production)
+    : {
+        rows: policy.production.map((rule) => ({
+          scope: "production",
+          name: rule.name,
+          maxDays: rule.maxDays,
+          ageDays: null,
+          updatedAt: null,
+          status: "unavailable",
+        })),
+        staleCount: 0,
+        missingCount: 0,
+      };
 
   const allRows = [...repoResult.rows, ...stagingResult.rows, ...productionResult.rows];
   const staleCount = repoResult.staleCount + stagingResult.staleCount + productionResult.staleCount;
@@ -151,6 +204,7 @@ const run = async () => {
   lines.push(`- Policy default max days: ${defaultMaxDays}`);
   lines.push(`- Stale secrets: ${staleCount}`);
   lines.push(`- Missing secrets: ${missingCount}`);
+  lines.push(`- Unavailable scopes: ${[repoScope, stagingScope, productionScope].filter((item) => !item.available).length}`);
   lines.push("");
   lines.push("| Scope | Secret | Max Days | Age Days | Updated At | Status |");
   lines.push("| --- | --- | ---: | ---: | --- | --- |");
@@ -162,6 +216,15 @@ const run = async () => {
     );
   }
   lines.push("");
+
+  if (warnings.length > 0) {
+    lines.push("## Warnings");
+    lines.push("");
+    for (const warning of warnings) {
+      lines.push(`- ${warning}`);
+    }
+    lines.push("");
+  }
 
   if (staleCount === 0 && missingCount === 0) {
     lines.push("All tracked secrets are within rotation policy.");
@@ -177,6 +240,10 @@ const run = async () => {
 
   await writeGithubOutput("stale_count", String(staleCount));
   await writeGithubOutput("missing_count", String(missingCount));
+  await writeGithubOutput(
+    "unavailable_scopes",
+    String([repoScope, stagingScope, productionScope].filter((item) => !item.available).length)
+  );
   await writeGithubOutput("report_path", "secret-rotation-report.md");
 
   if (staleCount > 0 || missingCount > 0) {

@@ -65,6 +65,7 @@ curl -X POST http://localhost:3000/api/admin/init-seed
 - `VERCEL_TOKEN`
 - `VERCEL_PROJECT_ID`
 - `VERCEL_TEAM_ID`（個人專案可留空）
+- `SECRET_AUDIT_TOKEN`（可選；若要讓 rotation workflow 讀取 environment secrets，請放有 repo admin 權限的 PAT）
 
 ### 6.3 `staging-smoke.yml` 需要的 staging secrets
 

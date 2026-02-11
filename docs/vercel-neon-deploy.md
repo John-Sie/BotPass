@@ -133,5 +133,6 @@ Recommended:
 - Workflow: `/.github/workflows/secret-rotation-check.yml`
 - Schedule: weekly (Monday 16:00 UTC) + manual trigger
 - It checks secret `updated_at` age for repo/staging/production scopes.
+- Optional: add repo secret `SECRET_AUDIT_TOKEN` (PAT with admin scope) for full environment secret audit.
 - If stale/missing secrets are found, workflow fails and opens/updates an issue:
 - `Security: Secret rotation required`
