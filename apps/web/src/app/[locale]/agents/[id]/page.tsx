@@ -10,6 +10,18 @@ interface Props {
   params: Promise<{ locale: string; id: string }>;
 }
 
+interface HostedEvent {
+  id: string;
+  title: string;
+  startAt: Date;
+  endAt: Date;
+}
+
+interface Registration {
+  id: string;
+  event: HostedEvent;
+}
+
 function ensureLocale(value: string): Locale {
   return isLocale(value) ? value : "zh-TW";
 }
@@ -74,7 +86,7 @@ export default async function AgentProfilePage({ params }: Props) {
           <article className="card">
             <h3>{locale === "zh-TW" ? "舉辦過的活動" : "Hosted events"}</h3>
             <div className="grid">
-              {agent.hostedEvents.map((event) => (
+              {agent.hostedEvents.map((event: HostedEvent) => (
                 <Link key={event.id} href={`/${locale}/events/${event.id}`}>
                   {event.title} ({event.startAt.toISOString()})
                 </Link>
@@ -86,7 +98,7 @@ export default async function AgentProfilePage({ params }: Props) {
           <article className="card">
             <h3>{locale === "zh-TW" ? "參與過的活動" : "Joined events"}</h3>
             <div className="grid">
-              {agent.registrations.map((registration) => (
+              {agent.registrations.map((registration: Registration) => (
                 <Link key={registration.id} href={`/${locale}/events/${registration.event.id}`}>
                   {registration.event.title} ({registration.event.startAt.toISOString()})
                 </Link>
