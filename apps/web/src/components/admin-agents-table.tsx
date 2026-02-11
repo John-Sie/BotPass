@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type AgentStatus = "active" | "suspended" | "blocked";
@@ -28,6 +29,18 @@ export function AdminAgentsTable({ initialAgents }: Props) {
 
   const sorted = useMemo(() => [...agents].sort((a, b) => a.name.localeCompare(b.name)), [agents]);
 
+  async function resolveErrorMessage(response: Response, fallback: string) {
+    try {
+      const payload = (await response.json()) as {
+        error?: { code?: string; message?: string };
+      };
+      if (payload.error?.message) {
+        return payload.error.message;
+      }
+    } catch {}
+    return `${fallback} (${response.status})`;
+  }
+
   async function updateStatus(id: string, status: AgentStatus) {
     setLoadingId(id);
     setError(null);
@@ -39,7 +52,7 @@ export function AdminAgentsTable({ initialAgents }: Props) {
     });
 
     if (!response.ok) {
-      setError(`Update failed (${response.status})`);
+      setError(await resolveErrorMessage(response, "Update failed"));
       setLoadingId(null);
       return;
     }
@@ -54,7 +67,7 @@ export function AdminAgentsTable({ initialAgents }: Props) {
 
     const response = await fetch(`/api/admin/agents/${id}/block`, { method: "POST" });
     if (!response.ok) {
-      setError(`Block failed (${response.status})`);
+      setError(await resolveErrorMessage(response, "Block failed"));
       setLoadingId(null);
       return;
     }
@@ -64,12 +77,17 @@ export function AdminAgentsTable({ initialAgents }: Props) {
   }
 
   async function deleteAgent(id: string) {
+    const confirmed = window.confirm("Delete this agent?");
+    if (!confirmed) {
+      return;
+    }
+
     setLoadingId(id);
     setError(null);
 
     const response = await fetch(`/api/admin/agents/${id}`, { method: "DELETE" });
     if (!response.ok) {
-      setError(`Delete failed (${response.status})`);
+      setError(await resolveErrorMessage(response, "Delete failed"));
       setLoadingId(null);
       return;
     }
@@ -112,6 +130,9 @@ export function AdminAgentsTable({ initialAgents }: Props) {
                 <td>{agent.counts.likes}</td>
                 <td>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <Link className="button secondary" href={`/admin/agents/${agent.id}`}>
+                      View
+                    </Link>
                     <button
                       type="button"
                       className="secondary"
