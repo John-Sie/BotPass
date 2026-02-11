@@ -49,6 +49,39 @@ function extractEnv(output, key) {
   return match?.[1];
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function parseJsonResponse(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+async function assertAgentVisible(baseUrl, agentId) {
+  const url = `${baseUrl.replace(/\/+$/, "")}/api/public/agents/${agentId}`;
+  const response = await fetch(url, { method: "GET" });
+  const body = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    const code = typeof body?.error?.code === "string" ? body.error.code : response.statusText;
+    if (code === "agent_not_found") {
+      throw new Error(
+        [
+          `GET /api/public/agents/${agentId} failed: 404 agent_not_found`,
+          "Provisioned agent was written to DATABASE_URL, but STAGING_BASE_URL runtime cannot find it.",
+          "Check that Vercel preview DATABASE_URL points to the same Neon staging branch used by this workflow."
+        ].join(" ")
+      );
+    }
+    throw new Error(`GET /api/public/agents/${agentId} failed: ${response.status} ${code}`);
+  }
+}
+
 async function main() {
   console.log("[staging-smoke] Step 1/3 env check");
   const envCheck = await run("node", ["scripts/check-deploy-env.mjs", "staging"]);
@@ -57,9 +90,25 @@ async function main() {
   }
 
   console.log("[staging-smoke] Step 2/3 provision staging agent");
-  const provision = await run("node", ["scripts/provision-staging-agent.mjs"]);
-  if (provision.code !== 0) {
-    process.exit(provision.code);
+  const provisionAttempts = 3;
+  let provision;
+  for (let attempt = 1; attempt <= provisionAttempts; attempt += 1) {
+    provision = await run("node", ["scripts/provision-staging-agent.mjs"], {
+      env: {
+        ...process.env,
+        DATABASE_URL: process.env.DIRECT_URL ?? process.env.DATABASE_URL
+      }
+    });
+    if (provision.code === 0) {
+      break;
+    }
+    if (attempt < provisionAttempts) {
+      console.warn(`[staging-smoke] provision failed, retrying (${attempt}/${provisionAttempts}) in 3s`);
+      await wait(3000);
+    }
+  }
+  if (!provision || provision.code !== 0) {
+    process.exit(provision?.code ?? 1);
   }
 
   const agentId = extractEnv(provision.stdout, "STAGING_AGENT_ID");
@@ -70,7 +119,10 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("[staging-smoke] Step 3/3 verify full flow");
+  console.log("[staging-smoke] Step 3/4 verify provisioned agent is visible from runtime");
+  await assertAgentVisible(process.env.STAGING_BASE_URL, agentId);
+
+  console.log("[staging-smoke] Step 4/4 verify full flow");
   const verify = await run("node", ["scripts/verify-staging-flow.mjs"], {
     env: {
       ...process.env,

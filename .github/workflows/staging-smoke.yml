@@ -19,6 +19,7 @@ jobs:
       CI: true
       NODE_ENV: production
       DATABASE_URL: ${{ secrets.NEON_STAGING_DATABASE_URL || secrets.NEON_STAGING_DIRECT_URL }}
+      DIRECT_URL: ${{ secrets.NEON_STAGING_DIRECT_URL }}
       NEXTAUTH_SECRET: ${{ secrets.STAGING_NEXTAUTH_SECRET }}
       NEXTAUTH_URL: ${{ secrets.STAGING_BASE_URL }}
       BOTPASS_FROM_EMAIL: ${{ secrets.STAGING_BOTPASS_FROM_EMAIL }}
