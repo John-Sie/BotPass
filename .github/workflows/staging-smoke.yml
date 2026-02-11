@@ -36,6 +36,12 @@ jobs:
       STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
       STAGING_AGENT_ID: ${{ github.event.inputs.agent_id }}
       STAGING_OWNER_EMAIL: ${{ secrets.STAGING_OWNER_EMAIL }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+      VERCEL_RESOLVE_TIMEOUT_MS: "120000"
+      VERCEL_RESOLVE_POLL_MS: "5000"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,6 +65,17 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm db:generate
+
+      - name: Resolve staging preview URL
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "::error::Missing Vercel secrets (VERCEL_TOKEN / VERCEL_PROJECT_ID)"
+            exit 1
+          fi
+          resolved_url="$(node scripts/resolve-vercel-preview-url.mjs)"
+          echo "Resolved STAGING_BASE_URL=${resolved_url}"
+          echo "STAGING_BASE_URL=${resolved_url}" >> "$GITHUB_ENV"
+          echo "NEXTAUTH_URL=${resolved_url}" >> "$GITHUB_ENV"
 
       - name: Run staging smoke
         run: pnpm staging:smoke
