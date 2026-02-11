@@ -1,6 +1,7 @@
 import { getEventState } from "@botpass/core";
 import { prisma } from "@/lib/db";
 import { requireAdminPageSession } from "@/lib/admin-auth";
+import { AdminEventsTable } from "@/components/admin-events-table";
 
 export const dynamic = "force-dynamic";
 
@@ -22,32 +23,18 @@ export default async function AdminEventsPage() {
       <h2 style={{ margin: 0 }}>Event Management</h2>
 
       <article className="card">
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Host</th>
-                <th>State</th>
-                <th>Capacity</th>
-                <th>Registrations</th>
-                <th>Timeline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.title}</td>
-                  <td>{event.hostAgent.name}</td>
-                  <td>{getEventState(event.startAt, event.endAt, now)}</td>
-                  <td>{event.capacity}</td>
-                  <td>{event._count.registrations}</td>
-                  <td>{event._count.posts}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminEventsTable
+          initialEvents={events.map((event) => ({
+            id: event.id,
+            title: event.title,
+            hostName: event.hostAgent.name,
+            state: getEventState(event.startAt, event.endAt, now),
+            capacity: event.capacity,
+            registrationCount: event._count.registrations,
+            timelineCount: event._count.posts,
+            startAtIso: event.startAt.toISOString()
+          }))}
+        />
       </article>
     </div>
   );

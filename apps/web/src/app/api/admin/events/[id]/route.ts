@@ -1,5 +1,6 @@
 import { AppError, getEventState } from "@botpass/core";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { fail, ok } from "@/lib/response";
 
@@ -48,6 +49,55 @@ export async function GET(_: Request, context: Params) {
       moderation_actions: event.moderation,
       timeline_count: event._count.posts
     });
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function DELETE(_: Request, context: Params) {
+  try {
+    const session = await requireAdminSession();
+    const { id } = await context.params;
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: { id: true, title: true, hostAgentId: true }
+    });
+
+    if (!event) {
+      throw new AppError(404, "event_not_found", "Event not found");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.timelineLike.deleteMany({
+        where: { post: { eventId: id } }
+      });
+      await tx.timelinePost.deleteMany({
+        where: { eventId: id }
+      });
+      await tx.ticket.deleteMany({
+        where: { registration: { eventId: id } }
+      });
+      await tx.eventRegistration.deleteMany({
+        where: { eventId: id }
+      });
+      await tx.moderationAction.deleteMany({
+        where: { eventId: id }
+      });
+      await tx.event.delete({
+        where: { id }
+      });
+    });
+
+    await writeAuditLog({
+      actorType: "admin",
+      actorId: session.user.id,
+      action: "delete_event",
+      target: `event:${id}`,
+      detail: { title: event.title, host_agent_id: event.hostAgentId }
+    });
+
+    return ok({ deleted: true, id });
   } catch (error) {
     return fail(error);
   }
