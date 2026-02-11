@@ -109,7 +109,9 @@ async function call(path, init) {
     method: "GET",
     headers
   });
-  const ticketId = ticketBody?.data?.ticket_id;
+  // Backward/forward compatible: older scripts expected `ticket_id`,
+  // current API returns `ticket.id`.
+  const ticketId = ticketBody?.data?.ticket_id ?? ticketBody?.data?.ticket?.id;
   if (!ticketId) {
     throw new Error("ticket query returned no ticket id");
   }
