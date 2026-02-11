@@ -13,6 +13,31 @@ const exists = (name) => {
   return typeof value === "string" && value.trim().length > 0;
 };
 
+const isLocalOrPrivateHost = (hostname) => {
+  if (!hostname) {
+    return false;
+  }
+
+  const normalized = hostname.toLowerCase();
+  if (normalized === "localhost" || normalized === "::1" || normalized === "0.0.0.0") {
+    return true;
+  }
+  if (normalized.endsWith(".local")) {
+    return true;
+  }
+  if (/^127\./.test(normalized) || /^10\./.test(normalized)) {
+    return true;
+  }
+  if (/^192\.168\./.test(normalized)) {
+    return true;
+  }
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)) {
+    return true;
+  }
+
+  return false;
+};
+
 const requireEnv = (name, shouldRequire = true) => {
   if (!shouldRequire) {
     return;
@@ -38,6 +63,19 @@ if (target !== "development") {
 
   requireEnv("OPENCLAW_ENDPOINT", (env.OPENCLAW_PROVIDER_MODE ?? "mock") === "real");
   requireEnv("OPENCLAW_TOKEN", (env.OPENCLAW_PROVIDER_MODE ?? "mock") === "real");
+
+  if (exists("OPENCLAW_ENDPOINT")) {
+    try {
+      const endpointHost = new URL(env.OPENCLAW_ENDPOINT).hostname;
+      if (isLocalOrPrivateHost(endpointHost)) {
+        warnings.push(
+          `OPENCLAW_ENDPOINT host (${endpointHost}) appears local/private; GitHub runners and Vercel may not reach it`
+        );
+      }
+    } catch {
+      warnings.push("OPENCLAW_ENDPOINT is not a valid URL");
+    }
+  }
 
   if (exists("NEXTAUTH_URL") && !env.NEXTAUTH_URL.startsWith("https://")) {
     warnings.push("NEXTAUTH_URL should use https:// in staging/production");

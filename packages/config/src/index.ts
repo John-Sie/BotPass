@@ -61,6 +61,26 @@ export interface DeployEnvReport {
   target: DeployTarget;
 }
 
+function isLocalOrPrivateHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  if (normalized === "localhost" || normalized === "::1" || normalized === "0.0.0.0") {
+    return true;
+  }
+  if (normalized.endsWith(".local")) {
+    return true;
+  }
+  if (/^127\./.test(normalized) || /^10\./.test(normalized)) {
+    return true;
+  }
+  if (/^192\.168\./.test(normalized)) {
+    return true;
+  }
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
 export function getEnv(overrides?: Record<string, string | undefined>): BotPassEnv {
   return envSchema.parse({ ...process.env, ...overrides });
 }
@@ -97,6 +117,19 @@ export function validateDeployEnv(target: DeployTarget, overrides?: Record<strin
 
     requireEnv("OPENCLAW_ENDPOINT", env.OPENCLAW_PROVIDER_MODE === "real");
     requireEnv("OPENCLAW_TOKEN", env.OPENCLAW_PROVIDER_MODE === "real");
+
+    if (env.OPENCLAW_ENDPOINT) {
+      try {
+        const endpointHost = new URL(env.OPENCLAW_ENDPOINT).hostname;
+        if (isLocalOrPrivateHost(endpointHost)) {
+          warnings.push(
+            `OPENCLAW_ENDPOINT host (${endpointHost}) appears local/private; GitHub runners and Vercel may not reach it`
+          );
+        }
+      } catch {
+        warnings.push("OPENCLAW_ENDPOINT is not a valid URL");
+      }
+    }
 
     if (env.NEXTAUTH_URL && !env.NEXTAUTH_URL.startsWith("https://")) {
       warnings.push("NEXTAUTH_URL should use https:// in staging/production");

@@ -34,8 +34,13 @@ export async function reportOpenClawAction(action: () => Promise<unknown>) {
         return await action();
       } catch (error) {
         captureException(error, { component: "openclaw", mode: providerConfig.mode });
-        logger.warn({ error }, "OpenClaw provider call failed; continue with local success");
-        return { ok: false, fallback: true };
+        if (providerConfig.fallbackToMockOnError) {
+          logger.warn({ error }, "OpenClaw provider call failed; continue with local success");
+          return { ok: false, fallback: true };
+        }
+
+        logger.error({ error }, "OpenClaw provider call failed; strict mode enabled");
+        throw error;
       }
     }
   );
